@@ -598,12 +598,6 @@
     .hint-touch { display: inline; }
     .swipe-tip { display: block; }
   }
-  .holder.swipe-left  { animation: swipe-out-left  .36s cubic-bezier(.3, .1, .4, 1) forwards; }
-  .holder.swipe-right { animation: swipe-out-right .36s cubic-bezier(.3, .1, .4, 1) forwards; }
-  .holder.swipe-down  { animation: swipe-out-down  .36s cubic-bezier(.3, .1, .4, 1) forwards; }
-  @keyframes swipe-out-left  { to { transform: rotate(-2.6deg) translateX(-140%); opacity: 0; } }
-  @keyframes swipe-out-right { to { transform: rotate(0.2deg) translateX(140%); opacity: 0; } }
-  @keyframes swipe-out-down  { to { transform: rotate(-1.2deg) translateY(60%); opacity: 0; } }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -3344,18 +3338,26 @@
     setButtonsDisabled(!flipped);
   }
 
+  /* 判定动画统一:点击与滑动共用同一套印章判定 + 同一换卡节奏。
+     评级数据永远在判定当下同步落库,动画只是视觉。 */
+  function playJudgment(k) {
+    stamp(k);
+    setButtonsDisabled(true);
+    const delay = matchMedia("(prefers-reduced-motion: reduce)").matches ? 140 : 640;
+    setTimeout(next, delay);
+  }
+
   function rate(k) {
     if (!flipped || locked) return;
     locked = true;
     applyRating(k, round > 1);
-    stamp(k);
-    setButtonsDisabled(true);
-    setTimeout(next, 640);
+    playJudgment(k);
   }
 
   /* ---------- touch gestures (mobile) ----------
      左滑 不认识 · 右滑 认识 · 下滑 眼熟 · 左屏缘右滑 返回
-     正面不翻面直接滑 = 诚实评级;左缘起始的右滑让位给返回手势 */
+     正面滑动:先落评级,再自动反转,反转完成后播印章判定(与点击一致);
+     左缘起始的右滑让位给返回手势 */
   const SWIPE_DX = 40, SWIPE_DY = 60, EDGE_X = 24, EDGE_DX = 50;
   let swipeStart = null, edgeStart = null;
 
@@ -3370,15 +3372,18 @@
   function swipeRate(k) {
     if (locked || sessionWrap.classList.contains("hidden")) return;
     locked = true;
-    applyRating(k, round > 1);
-    stamp(k);
     setButtonsDisabled(true);
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setTimeout(next, 140); return; }
-    holderEl.classList.add(k === "wrong" ? "swipe-left" : k === "know" ? "swipe-right" : "swipe-down");
-    setTimeout(() => {
-      holderEl.classList.remove("swipe-left", "swipe-right", "swipe-down");
-      next();
-    }, 380);
+    applyRating(k, round > 1);
+    if (!flipped) {
+      // 未翻开:先反转(0.5s 翻转过渡),完成后印章判定与点击路径完全一致
+      flipped = true;
+      card.classList.add("flipped");
+      card.setAttribute("aria-pressed", "true");
+      const wait = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 500;
+      setTimeout(() => playJudgment(k), wait);
+      return;
+    }
+    playJudgment(k);
   }
 
   card.addEventListener("touchstart", e => {

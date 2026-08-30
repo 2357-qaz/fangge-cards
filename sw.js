@@ -1,5 +1,5 @@
 /* 方格记忆卡 service worker:同源资源 cache-first,离线可用 */
-const CACHE = "fangge-cards-v2";
+const CACHE = "fangge-cards-v3";
 const ASSETS = [
   "./",
   "./index.html",
