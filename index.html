@@ -3237,6 +3237,7 @@
       st.iv = k === "know" ? Math.max(2, Math.ceil(st.iv * 2.5)) : Math.max(1, Math.ceil(st.iv * 1.6));
       st.due = today + st.iv;
     }
+    if (k === "know") st.lapse = 0; // 认识 = 掌握,退出错词池(错词判据是 lapse>0,防止历史错词终身占位)
     store.decks[c.deckId || deck.id][c.w] = st;
     saveStore();
     stats[k]++;
