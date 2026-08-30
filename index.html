@@ -21,6 +21,7 @@
     --card: #FEFDF9;
     --ink: #2A2722;
     --ink-soft: #8C8577;
+    --sq-know: #FEFDF9;   /* 进度方格:认识=白(暗色主题下取亮墨色) */
     --line: #D9D3C6;
     --verm: #C23E24;
     --verm-deep: #A3331C;
@@ -36,6 +37,7 @@
       --card: #262320;
       --ink: #EDE7DB;
       --ink-soft: #9A9183;
+      --sq-know: #EDE7DB;
       --line: #4A443A;
       --verm: #E4583C;
       --verm-deep: #F06A4E;
@@ -49,6 +51,7 @@
     --card: #262320;
     --ink: #EDE7DB;
     --ink-soft: #9A9183;
+    --sq-know: #EDE7DB;
     --line: #4A443A;
     --verm: #E4583C;
     --verm-deep: #F06A4E;
@@ -326,7 +329,10 @@
     border: 1.5px solid var(--line);
     border-radius: 0;
   }
-  .sq.done { background: var(--ink); border-color: var(--ink); }
+  /* 熟练度着色:认识=白 · 眼熟=灰 · 不认识=朱红(与 ✗ 印章同色) */
+  .sq.sq-know  { background: var(--sq-know); }
+  .sq.sq-fuzzy { background: var(--ink-soft); }
+  .sq.sq-wrong { background: var(--verm); border-color: var(--verm); }
   .sq.current { border-color: var(--verm); border-width: 2px; }
   .sq.more {
     display: flex;
@@ -3241,6 +3247,7 @@
   let deck = null, queue = [], pos = 0, round = 1, requeue = [], reviewCount = 0;
   const stats = { wrong: 0, fuzzy: 0, know: 0 };
   let flipped = false, locked = false, lastDeckId = null;
+  let ratings = []; // 每张已评卡片的评级(与 pos 同步),进度方格着色用
   let isToday = false, sessionTotal = 0;
 
   function showPicker() {
@@ -3275,6 +3282,7 @@
     round = 1;
     requeue = [];
     reviewCount = 0;
+    ratings = [];
     stats.wrong = stats.fuzzy = stats.know = 0;
     end.classList.remove("show");
     picker.classList.add("hidden");
@@ -3288,7 +3296,7 @@
     const show = queue.length > 100 ? 99 : queue.length;
     for (let k = 0; k < show; k++) {
       const s = document.createElement("span");
-      s.className = "sq" + (k < pos ? " done" : k === pos ? " current" : "");
+      s.className = "sq" + (k < pos ? " sq-" + ratings[k] : k === pos ? " current" : "");
       squaresEl.appendChild(s);
     }
     if (show < queue.length) {
@@ -3341,6 +3349,7 @@
   /* 判定动画统一:点击与滑动共用同一套印章判定 + 同一换卡节奏。
      评级数据永远在判定当下同步落库,动画只是视觉。 */
   function playJudgment(k) {
+    ratings.push(k);
     stamp(k);
     setButtonsDisabled(true);
     const delay = matchMedia("(prefers-reduced-motion: reduce)").matches ? 140 : 640;
@@ -3432,6 +3441,7 @@
         pos = 0;
         round++;
         reviewCount = queue.length;
+        ratings = [];
         renderCard();
       } else {
         showEnd();
